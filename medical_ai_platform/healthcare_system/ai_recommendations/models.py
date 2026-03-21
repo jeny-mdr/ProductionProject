@@ -12,7 +12,6 @@ class Disease(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
 
-    # doctor specialization needed for this disease
     doctor_specialization = models.CharField(max_length=100)
 
     def __str__(self):
