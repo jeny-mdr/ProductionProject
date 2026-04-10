@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'ai_recommendations',
     'chat',
     'blockchain',
+    'appointments',
 ]
 
 # Middleware — corsheaders MUST be first
