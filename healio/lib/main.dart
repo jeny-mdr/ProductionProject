@@ -13,6 +13,11 @@ import 'screens/ai_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/doctor_profile_screen.dart';
+import 'screens/appointments_screen.dart';
+import 'screens/specialists_screen.dart';
+import 'screens/hospitals_screen.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +51,10 @@ class HealioApp extends StatelessWidget {
           '/ai':       (_) => const AiScreen(),
           '/chats':    (_) => const ChatListScreen(),
           '/profile':  (_) => const ProfileScreen(),
+          '/doctor_profile': (_) => const DoctorProfileScreen(doctor: {}),
+          '/appointments': (_) => const AppointmentsScreen(),
+          '/specialists': (_) => const SpecialistsScreen(),
+          '/hospitals': (_) => const HospitalsScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/chat') {

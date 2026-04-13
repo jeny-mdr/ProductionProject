@@ -1,13 +1,18 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import 'package:file_picker/file_picker.dart';
 
 class ChatScreen extends StatefulWidget {
   final String otherUserId;
@@ -22,7 +27,8 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() =>
+      _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -33,16 +39,13 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     final auth = context.read<AuthProvider>();
-
-    // Fetch profile first to ensure username is loaded
-    auth.fetchProfile().then((_) {
-      if (mounted) {
-        context.read<ChatProvider>().connect(
-          widget.otherUserId,
-          auth.token ?? '',
-          auth.user?['username'] ?? '',
-        );
-      }
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) {
+      context.read<ChatProvider>().connect(
+        widget.otherUserId,
+        auth.token ?? '',
+        auth.user?['username'] ?? '',
+      );
     });
   }
 
@@ -60,7 +63,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 280),
+          duration:
+          const Duration(milliseconds: 280),
           curve: Curves.easeOut,
         );
       }
@@ -75,7 +79,77 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollBottom();
   }
 
-  // ── Prescription dialog (doctor only) ──────────
+  Future<void> _pickAndSendFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'pdf', 'doc', 'docx',
+        'jpg', 'jpeg', 'png', 'gif'
+      ],
+      allowMultiple: false,
+    );
+
+    if (result == null) return;
+    final file = result.files.single;
+    if (file.path == null) return;
+
+    final auth  = context.read<AuthProvider>();
+    final token = auth.token ?? '';
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(kChatUploadUrl),
+      );
+      request.headers['Authorization'] =
+      'Bearer $token';
+      request.fields['other_user_id'] =
+          widget.otherUserId;
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file', file.path!,
+        ),
+      );
+
+      final response = await request.send();
+      if (response.statusCode == 201) {
+        // ── NEW: read response and add file message ──
+        final responseBody =
+        await response.stream.bytesToString();
+        final data = jsonDecode(responseBody);
+
+        context.read<ChatProvider>().addFileMessage(
+          fileName:    data['file_name'],
+          fileUrl:     data['file_url'],
+          messageType: data['message_type'],
+          sender:      auth.user?['username'] ?? '',
+        );
+
+        // ── NEW: reconnect if WebSocket dropped ──
+        final chat = context.read<ChatProvider>();
+        if (!chat.isConnected) {
+          await chat.connect(
+            widget.otherUserId,
+            token,
+            auth.user?['username'] ?? '',
+          );
+        }
+        _scrollBottom();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File upload failed'),
+              backgroundColor: HealioColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('File upload error: $e');
+    }
+  }
+
   void _showPrescriptionDialog() {
     final auth      = context.read<AuthProvider>();
     final prescCtrl = TextEditingController();
@@ -87,17 +161,20 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+              borderRadius:
+              BorderRadius.circular(20)),
           title: Row(children: [
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
                 color: HealioColors.primaryLight,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius:
+                BorderRadius.circular(10),
               ),
               child: const Icon(
                 Icons.medical_services_rounded,
-                color: HealioColors.primary, size: 18,
+                color: HealioColors.primary,
+                size: 18,
               ),
             ),
             const SizedBox(width: 10),
@@ -110,7 +187,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ]),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
             children: [
               Text(
                 'For: ${widget.otherName}',
@@ -125,14 +203,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 maxLines: 5,
                 decoration: InputDecoration(
                   hintText:
-                  'e.g. Take Paracetamol 500mg twice daily for 5 days...',
+                  'e.g. Take Paracetamol 500mg twice daily…',
                   hintStyle: GoogleFonts.poppins(
                       fontSize: 12,
                       color: HealioColors.textLight),
                   filled: true,
                   fillColor: HealioColors.bgInput,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                    BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -148,22 +227,29 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () =>
+                  Navigator.pop(ctx),
               child: Text('Cancel',
                   style: GoogleFonts.poppins(
-                      color: HealioColors.textMid)),
+                      color:
+                      HealioColors.textMid)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: HealioColors.primary,
+                backgroundColor:
+                HealioColors.primary,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                minimumSize: const Size(0, 40),
+                    borderRadius:
+                    BorderRadius.circular(
+                        12)),
+                minimumSize:
+                const Size(0, 40),
               ),
               onPressed: saving
                   ? null
                   : () async {
-                final text = prescCtrl.text.trim();
+                final text =
+                prescCtrl.text.trim();
                 if (text.isEmpty) {
                   setS(() => error =
                   'Please write the prescription.');
@@ -175,23 +261,30 @@ class _ChatScreenState extends State<ChatScreen> {
                 });
 
                 try {
-                  final res = await http.post(
-                    Uri.parse(kSavePrescriptionUrl),
+                  final res =
+                  await http.post(
+                    Uri.parse(
+                        kSavePrescriptionUrl),
                     headers: {
-                      'Content-Type':  'application/json',
-                      'Authorization': 'Bearer ${auth.token}',
+                      'Content-Type':
+                      'application/json',
+                      'Authorization':
+                      'Bearer ${auth.token}',
                     },
                     body: jsonEncode({
-                      'patient_id': int.parse(
-                          widget.otherUserId),
+                      'patient_id':
+                      int.parse(widget
+                          .otherUserId),
                       'prescription': text,
                     }),
                   );
 
-                  if (res.statusCode == 201) {
-                    // Also send as chat message
-                    context.read<ChatProvider>()
-                        .sendMessage('📋 Prescription:\n$text');
+                  if (res.statusCode ==
+                      201) {
+                    context
+                        .read<ChatProvider>()
+                        .sendMessage(
+                        '📋 Prescription:\n$text');
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
                       _showSuccessSnack();
@@ -199,26 +292,34 @@ class _ChatScreenState extends State<ChatScreen> {
                   } else {
                     setS(() {
                       saving = false;
-                      error  = 'Failed to save. Try again.';
+                      error =
+                      'Failed to save. Try again.';
                     });
                   }
                 } catch (_) {
                   setS(() {
                     saving = false;
-                    error  = 'Network error. Try again.';
+                    error =
+                    'Network error. Try again.';
                   });
                 }
               },
               icon: saving
                   ? const SizedBox(
                   width: 14, height: 14,
-                  child: CircularProgressIndicator(
+                  child:
+                  CircularProgressIndicator(
                       color: Colors.white,
                       strokeWidth: 2))
-                  : const Icon(Icons.save_rounded, size: 16),
+                  : const Icon(
+                  Icons.save_rounded,
+                  size: 16),
               label: Text(
-                saving ? 'Saving...' : 'Save to Blockchain',
-                style: GoogleFonts.poppins(fontSize: 13),
+                saving
+                    ? 'Saving...'
+                    : 'Save to Blockchain',
+                style:
+                GoogleFonts.poppins(fontSize: 13),
               ),
             ),
           ],
@@ -240,7 +341,8 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 8),
           Text('Prescription saved to blockchain!',
               style: GoogleFonts.poppins(
-                  color: Colors.white, fontSize: 13)),
+                  color: Colors.white,
+                  fontSize: 13)),
         ]),
       ),
     );
@@ -248,9 +350,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth   = context.read<AuthProvider>();
-    final chat   = context.watch<ChatProvider>();
-    final isDoc  = auth.isDoctor;
+    final auth  = context.read<AuthProvider>();
+    final chat  = context.watch<ChatProvider>();
+    final isDoc = auth.isDoctor;
     _scrollBottom();
 
     return Scaffold(
@@ -259,14 +361,17 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: HealioColors.primary,
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded,
+          icon: const Icon(
+              Icons.arrow_back_ios_rounded,
               color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>
+              Navigator.pop(context),
         ),
         title: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: Colors.white.withOpacity(0.25),
+            backgroundColor:
+            Colors.white.withOpacity(0.25),
             child: Text(
               widget.otherName[0].toUpperCase(),
               style: GoogleFonts.poppins(
@@ -278,7 +383,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(width: 10),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
             children: [
               Text(
                 isDoc
@@ -305,14 +411,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       : 'Offline',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
-                    color: Colors.white.withOpacity(0.85),
+                    color: Colors.white
+                        .withOpacity(0.85),
                   ),
                 ),
               ]),
             ],
           ),
         ]),
-        // Prescription button — doctors only
         actions: [
           if (isDoc)
             IconButton(
@@ -320,48 +426,71 @@ class _ChatScreenState extends State<ChatScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white
+                      .withOpacity(0.2),
+                  borderRadius:
+                  BorderRadius.circular(10),
                 ),
                 child: const Icon(
-                    Icons.medical_services_rounded,
-                    color: Colors.white, size: 20),
+                    Icons
+                        .medical_services_rounded,
+                    color: Colors.white,
+                    size: 20),
               ),
-              onPressed: _showPrescriptionDialog,
+              onPressed:
+              _showPrescriptionDialog,
             ),
           const SizedBox(width: 8),
         ],
       ),
 
       body: Column(children: [
+        // Messages
         Expanded(
           child: chat.messages.isEmpty
               ? Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment:
+              MainAxisAlignment.center,
               children: [
-                Icon(Icons.chat_bubble_outline_rounded,
+                Icon(
+                    Icons
+                        .chat_bubble_outline_rounded,
                     size: 56,
-                    color: HealioColors.primaryMid),
+                    color: HealioColors
+                        .primaryMid),
                 const SizedBox(height: 12),
-                Text('Start the conversation',
+                Text(
+                    'Start the conversation',
                     style: GoogleFonts.poppins(
-                        color: HealioColors.textMid)),
+                        color: HealioColors
+                            .textMid)),
               ],
             ),
           )
               : ListView.builder(
             controller: _scrollCtrl,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 14),
-            itemCount: chat.messages.length,
+            padding:
+            const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14),
+            itemCount:
+            chat.messages.length,
             itemBuilder: (_, i) {
-              final m    = chat.messages[i];
-              final prev = i > 0 ? chat.messages[i - 1] : null;
-              final showDate = prev == null ||
-                  !_sameDay(prev.timestamp, m.timestamp);
+              final m =
+              chat.messages[i];
+              final prev = i > 0
+                  ? chat.messages[i - 1]
+                  : null;
+              final showDate =
+                  prev == null ||
+                      !_sameDay(
+                          prev.timestamp,
+                          m.timestamp);
               return Column(children: [
-                if (showDate) _DateDivider(m.timestamp),
+                if (showDate)
+                  _DateDivider(
+                      m.timestamp),
                 _Bubble(msg: m),
               ]);
             },
@@ -372,14 +501,41 @@ class _ChatScreenState extends State<ChatScreen> {
         Container(
           color: HealioColors.bgCard,
           padding: EdgeInsets.only(
-            left: 14, right: 14, top: 10,
-            bottom: MediaQuery.of(context).padding.bottom + 10,
+            left: 14,
+            right: 14,
+            top: 10,
+            bottom:
+            MediaQuery.of(context).padding.bottom +
+                10,
           ),
           child: Row(children: [
+            // Attachment button
+            GestureDetector(
+              onTap: _pickAndSendFile,
+              child: Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: HealioColors.bgInput,
+                  borderRadius:
+                  BorderRadius.circular(12),
+                  border: Border.all(
+                      color: HealioColors.border),
+                ),
+                child: const Icon(
+                  Icons.attach_file_rounded,
+                  color: HealioColors.primary,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Text field
             Expanded(
               child: TextField(
                 controller: _msgCtrl,
-                textCapitalization: TextCapitalization.sentences,
+                textCapitalization:
+                TextCapitalization.sentences,
                 maxLines: null,
                 onSubmitted: (_) => _send(),
                 decoration: InputDecoration(
@@ -387,15 +543,20 @@ class _ChatScreenState extends State<ChatScreen> {
                   fillColor: HealioColors.bgInput,
                   filled: true,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius:
+                    BorderRadius.circular(24),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 12),
+                  contentPadding:
+                  const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12),
                 ),
               ),
             ),
             const SizedBox(width: 10),
+
+            // Send button
             GestureDetector(
               onTap: _send,
               child: Container(
@@ -404,8 +565,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: HealioColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.send_rounded,
-                    color: Colors.white, size: 20),
+                child: const Icon(
+                    Icons.send_rounded,
+                    color: Colors.white,
+                    size: 20),
               ),
             ),
           ]),
@@ -415,33 +578,45 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+      a.year == b.year &&
+          a.month == b.month &&
+          a.day == b.day;
 }
 
-// ── Bubble ─────────────────────────────────────────────
+// ── Bubble ──────────────────────────────────────────
 class _Bubble extends StatelessWidget {
   final dynamic msg;
   const _Bubble({required this.msg});
 
   @override
   Widget build(BuildContext context) {
-    final isMe        = msg.isMe as bool;
-    final text        = msg.message as String;
-    final isPrescription = text.startsWith('📋 Prescription:');
+    final isMe           = msg.isMe as bool;
+    final text           = msg.message as String;
+    final isPrescription =
+    text.startsWith('📋 Prescription:');
+    final msgType =
+        msg.messageType as String? ?? 'text';
+    final fileUrl =
+    msg.fileUrl as String?;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
-        mainAxisAlignment:
-        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
             CircleAvatar(
               radius: 13,
-              backgroundColor: HealioColors.primaryLight,
-              child: const Icon(Icons.local_hospital_rounded,
-                  size: 13, color: HealioColors.primary),
+              backgroundColor:
+              HealioColors.primaryLight,
+              child: const Icon(
+                  Icons.local_hospital_rounded,
+                  size: 13,
+                  color: HealioColors.primary),
             ),
             const SizedBox(width: 7),
           ],
@@ -453,101 +628,83 @@ class _Bubble extends StatelessWidget {
               Container(
                 constraints: BoxConstraints(
                   maxWidth:
-                  MediaQuery.of(context).size.width * 0.66,
+                  MediaQuery.of(context)
+                      .size
+                      .width *
+                      0.66,
                 ),
-                padding: const EdgeInsets.symmetric(
+                padding: msgType == 'image'
+                    ? EdgeInsets.zero
+                    //? const EdgeInsets.all(4)
+                    : const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isPrescription
                       ? (isMe
-                      ? HealioColors.primaryDark
-                      : HealioColors.primaryLight)
+                      ? HealioColors
+                      .primaryDark
+                      : HealioColors
+                      .primaryLight)
                       : (isMe
                       ? HealioColors.primary
                       : HealioColors.bgCard),
                   borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isMe ? 18 : 4),
-                    bottomRight: Radius.circular(isMe ? 4 : 18),
+                    topLeft:
+                    const Radius.circular(18),
+                    topRight:
+                    const Radius.circular(18),
+                    bottomLeft: Radius.circular(
+                        isMe ? 18 : 4),
+                    bottomRight: Radius.circular(
+                        isMe ? 4 : 18),
                   ),
                   border: isPrescription
                       ? Border.all(
-                      color: HealioColors.primary,
+                      color:
+                      HealioColors.primary,
                       width: 1.5)
                       : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black
+                          .withOpacity(0.06),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isPrescription) ...[
-                      Row(children: [
-                        Icon(Icons.medical_services_rounded,
-                            size: 14,
-                            color: isMe
-                                ? Colors.white
-                                : HealioColors.primary),
-                        const SizedBox(width: 4),
-                        Text('Prescription',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isMe
-                                  ? Colors.white
-                                  : HealioColors.primary,
-                            )),
-                        const SizedBox(width: 4),
-                        Icon(Icons.verified_rounded,
-                            size: 12,
-                            color: isMe
-                                ? Colors.white70
-                                : HealioColors.primaryDark),
-                        const SizedBox(width: 2),
-                        Text('Blockchain',
-                            style: GoogleFonts.poppins(
-                              fontSize: 9,
-                              color: isMe
-                                  ? Colors.white70
-                                  : HealioColors.textMid,
-                            )),
-                      ]),
-                      const SizedBox(height: 6),
-                      Container(
-                        height: 1,
-                        color: isMe
-                            ? Colors.white24
-                            : HealioColors.border,
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    Text(
-                      isPrescription
-                          ? text.replaceFirst(
-                          '📋 Prescription:\n', '')
-                          : text,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: isMe
-                            ? Colors.white
-                            : HealioColors.textDark,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+                child: msgType == 'file' ||
+                    msgType == 'image'
+                    ? _FileWidget(
+                  text:    text,
+                  fileUrl: fileUrl,
+                  isMe:    isMe,
+                  isImage:
+                  msgType == 'image',
+                )
+                    : isPrescription
+                    ? _PrescriptionContent(
+                    text: text,
+                    isMe: isMe)
+                    : Text(
+                  text,
+                  style:
+                  GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: isMe
+                        ? Colors.white
+                        : HealioColors
+                        .textDark,
+                    height: 1.4,
+                  ),
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                     () {
                   final dt =
-                  (msg.timestamp as DateTime).toLocal();
+                  (msg.timestamp as DateTime)
+                      .toLocal();
                   return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
                 }(),
                 style: GoogleFonts.poppins(
@@ -563,7 +720,179 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-// ── Date divider ───────────────────────────────────────
+// ── File widget ─────────────────────────────────────
+class _FileWidget extends StatelessWidget {
+  final String  text;
+  final String? fileUrl;
+  final bool    isMe;
+  final bool    isImage;
+
+  const _FileWidget({
+    required this.text,
+    required this.fileUrl,
+    required this.isMe,
+    required this.isImage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fileName =
+    text.replaceFirst('📎 ', '');
+
+    if (isImage && fileUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: fileUrl!,
+          width: 200,
+          fit: BoxFit.cover,
+          placeholder: (_, __) =>
+          const SizedBox(
+            height: 100,
+            child: Center(
+              child: CircularProgressIndicator(
+                  color: HealioColors.primary),
+            ),
+          ),
+          errorWidget: (_, __, ___) =>
+          const Icon(
+              Icons.broken_image_rounded,
+              color: HealioColors.textLight),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: fileUrl != null
+          ? () async {
+        final uri = Uri.parse(fileUrl!);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri,
+              mode: LaunchMode
+                  .externalApplication);
+        }
+      }
+          : null,
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: isMe
+                ? Colors.white.withOpacity(0.2)
+                : HealioColors.primaryLight,
+            borderRadius:
+            BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.insert_drive_file_rounded,
+            color: isMe
+                ? Colors.white
+                : HealioColors.primary,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              Text(
+                fileName,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isMe
+                      ? Colors.white
+                      : HealioColors.textDark,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                'Tap to open',
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  color: isMe
+                      ? Colors.white70
+                      : HealioColors.textLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Prescription content ────────────────────────────
+class _PrescriptionContent extends StatelessWidget {
+  final String text;
+  final bool   isMe;
+  const _PrescriptionContent(
+      {required this.text, required this.isMe});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(Icons.medical_services_rounded,
+              size: 14,
+              color: isMe
+                  ? Colors.white
+                  : HealioColors.primary),
+          const SizedBox(width: 4),
+          Text('Prescription',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isMe
+                    ? Colors.white
+                    : HealioColors.primary,
+              )),
+          const SizedBox(width: 4),
+          Icon(Icons.verified_rounded,
+              size: 12,
+              color: isMe
+                  ? Colors.white70
+                  : HealioColors.primaryDark),
+          const SizedBox(width: 2),
+          Text('Blockchain',
+              style: GoogleFonts.poppins(
+                fontSize: 9,
+                color: isMe
+                    ? Colors.white70
+                    : HealioColors.textMid,
+              )),
+        ]),
+        const SizedBox(height: 6),
+        Container(
+            height: 1,
+            color: isMe
+                ? Colors.white24
+                : HealioColors.border),
+        const SizedBox(height: 6),
+        Text(
+          text.replaceFirst(
+              '📋 Prescription:\n', ''),
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: isMe
+                ? Colors.white
+                : HealioColors.textDark,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Date divider ────────────────────────────────────
 class _DateDivider extends StatelessWidget {
   final DateTime date;
   const _DateDivider(this.date);
@@ -571,22 +900,29 @@ class _DateDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now   = DateTime.now();
-    final label = date.day == now.day && date.month == now.month
+    final label = date.day == now.day &&
+        date.month == now.month
         ? 'Today'
         : '${date.day}/${date.month}/${date.year}';
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(
+          vertical: 12),
       child: Row(children: [
-        Expanded(child: Divider(color: HealioColors.border)),
+        Expanded(
+            child: Divider(
+                color: HealioColors.border)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 12),
           child: Text(label,
               style: GoogleFonts.poppins(
                 fontSize: 11,
                 color: HealioColors.textLight,
               )),
         ),
-        Expanded(child: Divider(color: HealioColors.border)),
+        Expanded(
+            child: Divider(
+                color: HealioColors.border)),
       ]),
     );
   }

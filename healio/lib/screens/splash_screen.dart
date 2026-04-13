@@ -35,18 +35,25 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(
         const Duration(milliseconds: 2400));
     if (!mounted) return;
+
     final auth = context.read<AuthProvider>();
     await auth.loadToken();
+
     if (!mounted) return;
+
     if (auth.isAuthenticated) {
       await auth.fetchProfile();
-      if (mounted) {
+      if (!mounted) return;
+      // Only go home if profile loaded correctly
+      if (auth.user != null) {
         Navigator.pushReplacementNamed(context, '/home');
-      }
-    } else {
-      if (mounted) {
+      } else {
+        // Token expired or invalid — go to login
+        await auth.logout();
         Navigator.pushReplacementNamed(context, '/login');
       }
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 

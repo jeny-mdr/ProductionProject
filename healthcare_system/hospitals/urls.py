@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import get_nearby_hospitals, get_nearby_pharmacies
+from .views import NearbyHospitalsView, NearbyPharmaciesView
 
 urlpatterns = [
-    path('nearby/', get_nearby_hospitals),
-    path('pharmacies/', get_nearby_pharmacies),
+    path('nearby/',     NearbyHospitalsView.as_view()),
+    path('pharmacies/', NearbyPharmaciesView.as_view()),
 ]

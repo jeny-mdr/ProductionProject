@@ -1,15 +1,14 @@
 from django.urls import path
 from .views import (
-    PredictDiseaseView,
     FullRecommendationView,
+    PredictDiseaseView,
     SymptomListView,
+    SymptomSuggestionsView,
 )
 
 urlpatterns = [
-    path('predict/',   PredictDiseaseView.as_view(),
-         name='predict_disease'),
-    path('recommend/', FullRecommendationView.as_view(),
-         name='full_recommendation'),
-    path('symptoms/',  SymptomListView.as_view(),
-         name='symptom_list'),
+    path('recommend/', FullRecommendationView.as_view()),
+    path('predict/',   PredictDiseaseView.as_view()),
+    path('symptoms/',  SymptomListView.as_view()),
+    path('suggest/',   SymptomSuggestionsView.as_view()),
 ]

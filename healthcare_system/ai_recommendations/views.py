@@ -10,12 +10,9 @@ import os
 from users.models import Doctor
 from hospitals.models import Hospital, Pharmacy
 
-# ── Load ML model on startup ──────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(
-    BASE_DIR, 'ml_model', 'disease_model.pkl')
-META_PATH = os.path.join(
-    BASE_DIR, 'ml_model', 'model_metadata.json')
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'ml_model', 'disease_model.pkl')
+META_PATH  = os.path.join(BASE_DIR, 'ml_model', 'model_metadata.json')
 
 with open(MODEL_PATH, 'rb') as f:
     ML_MODEL = pickle.load(f)
@@ -27,6 +24,48 @@ ALL_SYMPTOMS = META['symptoms']
 DISEASES     = META['diseases']
 DESCRIPTIONS = META['descriptions']
 PRECAUTIONS  = META['precautions']
+# ── Symptom suggestions map ───────────────────────────
+SYMPTOM_SUGGESTIONS = {
+    'high_fever': ['chills', 'sweating', 'headache', 'nausea', 'vomiting', 'muscle_pain'],
+    'headache': ['nausea', 'vomiting', 'dizziness', 'blurred_and_distorted_vision', 'fatigue'],
+    'vomiting': ['nausea', 'stomach_pain', 'abdominal_pain', 'diarrhoea', 'loss_of_appetite'],
+    'chest_pain': ['breathlessness', 'sweating', 'fatigue', 'fast_heart_rate', 'vomiting'],
+    'cough': ['breathlessness', 'phlegm', 'chest_pain', 'high_fever', 'fatigue'],
+    'fatigue': ['weight_loss', 'loss_of_appetite', 'weakness_in_limbs', 'lethargy', 'malaise'],
+    'breathlessness': ['chest_pain', 'fatigue', 'cough', 'phlegm', 'sweating'],
+    'abdominal_pain': ['nausea', 'vomiting', 'diarrhoea', 'loss_of_appetite', 'acidity'],
+    'skin_rash': ['itching', 'nodal_skin_eruptions', 'burning_micturition', 'blister'],
+    'joint_pain': ['muscle_pain', 'swelling_joints', 'fatigue', 'fever', 'weakness_in_limbs'],
+    'back_pain': ['neck_pain', 'weakness_in_limbs', 'muscle_weakness', 'stiff_neck'],
+    'dizziness': ['headache', 'nausea', 'vomiting', 'loss_of_balance', 'unsteadiness'],
+    'nausea': ['vomiting', 'loss_of_appetite', 'stomach_pain', 'abdominal_pain'],
+    'itching': ['skin_rash', 'nodal_skin_eruptions', 'dischromic_patches'],
+    'yellowing_of_eyes': ['yellowish_skin', 'dark_urine', 'nausea', 'loss_of_appetite', 'abdominal_pain'],
+    'loss_of_appetite': ['nausea', 'fatigue', 'weight_loss', 'weakness_in_limbs'],
+    'muscle_pain': ['joint_pain', 'fatigue', 'high_fever', 'chills', 'sweating'],
+    'sweating': ['high_fever', 'chills', 'fatigue', 'dehydration'],
+    'chills': ['high_fever', 'sweating', 'shivering', 'muscle_pain'],
+    'diarrhoea': ['vomiting', 'nausea', 'abdominal_pain', 'dehydration'],
+}
+
+
+class SymptomSuggestionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        selected = request.data.get('symptoms', [])
+        suggestions = set()
+
+        for s in selected:
+            sym = s.strip().lower().replace(' ', '_')
+            if sym in SYMPTOM_SUGGESTIONS:
+                for sugg in SYMPTOM_SUGGESTIONS[sym]:
+                    if sugg not in selected and sugg in ALL_SYMPTOMS:
+                        suggestions.add(sugg)
+
+        return Response({
+            "suggestions": list(suggestions)[:6]
+        })
 
 print(f"✅ ML Model loaded — "
       f"{len(ALL_SYMPTOMS)} symptoms, "
@@ -34,7 +73,6 @@ print(f"✅ ML Model loaded — "
       f"Accuracy: {META['accuracy']}%")
 
 
-# ── Haversine distance ────────────────────────────────
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     d_lat = math.radians(lat2 - lat1)
@@ -47,11 +85,13 @@ def haversine(lat1, lon1, lat2, lon2):
         math.sqrt(a), math.sqrt(1 - a))
 
 
-# ── Helper: symptoms to vector ────────────────────────
 def symptoms_to_vector(symptoms):
-    vector = np.zeros(len(ALL_SYMPTOMS), dtype=int)
+    vector  = np.zeros(len(ALL_SYMPTOMS), dtype=int)
     matched = []
-    symptoms_lower = [s.strip().lower() for s in symptoms]
+    symptoms_lower = [
+        s.strip().lower().replace(' ', '_')
+        for s in symptoms
+    ]
     for i, sym in enumerate(ALL_SYMPTOMS):
         if sym in symptoms_lower:
             vector[i] = 1
@@ -59,11 +99,24 @@ def symptoms_to_vector(symptoms):
     return vector, matched
 
 
-# ── General doctors helper ────────────────────────────
-def get_general_doctors():
+def get_general_doctors(budget=None):
+    """Returns only General Physicians."""
     doctors = Doctor.objects.filter(
-        is_verified=True
-    ).select_related('user')[:3]
+        is_verified=True,
+        specialization__icontains='General'
+    ).select_related('user')
+
+    if not doctors.exists():
+        doctors = Doctor.objects.filter(
+            is_verified=True
+        ).select_related('user')
+
+    if budget:
+        filtered = doctors.filter(
+            consultation_fee__lte=int(budget))
+        if filtered.exists():
+            doctors = filtered
+
     return [
         {
             "id":               d.user.id,
@@ -73,11 +126,10 @@ def get_general_doctors():
             "hospital":         d.hospital,
             "consultation_fee": d.consultation_fee,
         }
-        for d in doctors
+        for d in doctors[:3]
     ]
 
 
-# ── Hospitals and pharmacies helper ──────────────────
 def get_nearby(user_lat, user_lng):
     hospital_list = []
     for h in Hospital.objects.exclude(
@@ -118,53 +170,51 @@ def get_nearby(user_lat, user_lng):
     return hospital_list[:5], pharmacy_list[:5]
 
 
-# ── Disease to specialization map ─────────────────────
 DISEASE_SPEC_MAP = {
-    'Fungal infection':        'Dermatologist',
-    'Allergy':                 'General Physician',
-    'GERD':                    'Gastroenterologist',
-    'Chronic cholestasis':     'Gastroenterologist',
-    'Drug Reaction':           'General Physician',
-    'Peptic ulcer disease':    'Gastroenterologist',
-    'AIDS':                    'General Physician',
-    'Diabetes':                'Endocrinologist',
-    'Gastroenteritis':         'Gastroenterologist',
-    'Bronchial Asthma':        'Pulmonologist',
-    'Hypertension':            'Cardiologist',
-    'Migraine':                'Neurologist',
-    'Cervical spondylosis':    'Orthopedist',
+    'Fungal infection':             'Dermatologist',
+    'Allergy':                      'General Physician',
+    'GERD':                         'Gastroenterologist',
+    'Chronic cholestasis':          'Gastroenterologist',
+    'Drug Reaction':                'General Physician',
+    'Peptic ulcer disease':         'Gastroenterologist',
+    'AIDS':                         'General Physician',
+    'Diabetes':                     'Endocrinologist',
+    'Gastroenteritis':              'Gastroenterologist',
+    'Bronchial Asthma':             'Pulmonologist',
+    'Hypertension ':                'Cardiologist',
+    'Migraine':                     'Neurologist',
+    'Cervical spondylosis':         'Orthopedist',
     'Paralysis (brain hemorrhage)': 'Neurologist',
-    'Jaundice':                'Gastroenterologist',
-    'Malaria':                 'General Physician',
-    'Chicken pox':             'General Physician',
-    'Dengue':                  'General Physician',
-    'Typhoid':                 'General Physician',
-    'hepatitis A':             'Gastroenterologist',
-    'Hepatitis B':             'Gastroenterologist',
-    'Hepatitis C':             'Gastroenterologist',
-    'Hepatitis D':             'Gastroenterologist',
-    'Hepatitis E':             'Gastroenterologist',
-    'Alcoholic hepatitis':     'Gastroenterologist',
-    'Tuberculosis':            'Pulmonologist',
-    'Common Cold':             'General Physician',
-    'Pneumonia':               'Pulmonologist',
-    'Dimorphic hemorrhoids':   'General Physician',
-    'Heart attack':            'Cardiologist',
-    'Varicose veins':          'General Physician',
-    'Hypothyroidism':          'Endocrinologist',
-    'Hyperthyroidism':         'Endocrinologist',
-    'Hypoglycemia':            'Endocrinologist',
-    'Osteoarthritis':          'Orthopedist',
-    'Arthritis':               'General Physician',
-    'Vertigo':                 'Neurologist',
-    'Acne':                    'Dermatologist',
-    'Urinary tract infection': 'General Physician',
-    'Psoriasis':               'Dermatologist',
-    'Impetigo':                'Dermatologist',
+    'Jaundice':                     'Gastroenterologist',
+    'Malaria':                      'General Physician',
+    'Chicken pox':                  'General Physician',
+    'Dengue':                       'General Physician',
+    'Typhoid':                      'General Physician',
+    'hepatitis A':                  'Gastroenterologist',
+    'Hepatitis B':                  'Gastroenterologist',
+    'Hepatitis C':                  'Gastroenterologist',
+    'Hepatitis D':                  'Gastroenterologist',
+    'Hepatitis E':                  'Gastroenterologist',
+    'Alcoholic hepatitis':          'Gastroenterologist',
+    'Tuberculosis':                 'Pulmonologist',
+    'Common Cold':                  'General Physician',
+    'Pneumonia':                    'Pulmonologist',
+    'Dimorphic hemorrhoids':        'General Physician',
+    'Heart attack':                 'Cardiologist',
+    'Varicose veins':               'General Physician',
+    'Hypothyroidism':               'Endocrinologist',
+    'Hyperthyroidism':              'Endocrinologist',
+    'Hypoglycemia':                 'Endocrinologist',
+    'Osteoarthritis':               'Orthopedist',
+    'Arthritis':                    'General Physician',
+    'Vertigo':                      'Neurologist',
+    'Acne':                         'Dermatologist',
+    'Urinary tract infection':      'General Physician',
+    'Psoriasis':                    'Dermatologist',
+    'Impetigo':                     'Dermatologist',
 }
 
 
-# ── Main recommendation view ──────────────────────────
 class FullRecommendationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -193,25 +243,22 @@ class FullRecommendationView(APIView):
                 {"error": "Invalid lat/lng"},
                 status=400)
 
-        # ── Build feature vector ──────────────────────
         vector, matched_symptoms = \
             symptoms_to_vector(symptoms)
 
         if sum(vector) == 0:
             return Response({
                 "error": "No recognised symptoms found.",
-                "hint":  "Try: fever, headache, cough, fatigue",
+                "hint":  "Please select symptoms from the dropdown list",
                 "available_symptoms": ALL_SYMPTOMS[:20],
             }, status=400)
 
-        # ── ML Prediction ─────────────────────────────
         proba          = ML_MODEL.predict_proba([vector])[0]
         max_confidence = round(max(proba) * 100, 1)
         prediction     = ML_MODEL.predict([vector])[0]
         disease_name   = DISEASES[prediction]
 
-        # Top 3 predictions
-        top_indices = np.argsort(proba)[::-1][:3]
+        top_indices  = np.argsort(proba)[::-1][:3]
         top_diseases = [
             {
                 "disease":    DISEASES[i],
@@ -221,58 +268,56 @@ class FullRecommendationView(APIView):
             if proba[i] > 0.05
         ]
 
-        # ── Get hospitals and pharmacies ──────────────
         hospital_list, pharmacy_list = get_nearby(
             user_lat, user_lng)
 
-        # ── Low confidence — don't guess! ─────────────
-        if max_confidence < 40:
+        # ── Low confidence threshold lowered to 20% ──
+        if max_confidence < 20:
             return Response({
-                "predicted_disease": "Uncertain",
+                "predicted_disease":   "Uncertain",
                 "description": (
-                    "Your symptoms are too general to make "
-                    "a confident prediction. Please add more "
-                    "specific symptoms or consult a doctor."
+                    "Your symptoms are too general. "
+                    "Please select more specific symptoms "
+                    "from the dropdown list."
                 ),
                 "precautions": [
-                    "Consult a doctor",
+                    "Consult a General Physician",
                     "Rest and stay hydrated",
                     "Monitor your symptoms",
                 ],
-                "confidence":        max_confidence,
-                "symptoms_matched":  matched_symptoms,
-                "top_predictions":   [],
-                "recommended_doctors": get_general_doctors(),
-                "nearby_hospitals":  hospital_list,
-                "nearby_pharmacies": pharmacy_list,
+                "confidence":          max_confidence,
+                "symptoms_matched":    matched_symptoms,
+                "top_predictions":     [],
+                "recommended_doctors": get_general_doctors(budget),
+                "nearby_hospitals":    hospital_list,
+                "nearby_pharmacies":   pharmacy_list,
                 "message": (
                     f"Confidence too low ({max_confidence}%). "
-                    "Please describe your symptoms more specifically."
+                    "Please select symptoms from the dropdown."
                 )
             })
 
-        # ── High confidence — full response ───────────
-        description  = DESCRIPTIONS.get(
+        # ── High confidence ──────────────────────────
+        description    = DESCRIPTIONS.get(
             disease_name, "No description available.")
-        precautions  = PRECAUTIONS.get(disease_name, [])
+        precautions    = PRECAUTIONS.get(disease_name, [])
         specialization = DISEASE_SPEC_MAP.get(
             disease_name, 'General Physician')
 
-        # Find matching doctors
-        doctors = Doctor.objects.filter(
+        doctors      = Doctor.objects.filter(
             is_verified=True
         ).select_related('user')
 
+        # Try exact specialization match first
         spec_doctors = doctors.filter(
             specialization__icontains=specialization)
 
+        # Only fall back if NO doctors of that specialty exist
         if not spec_doctors.exists():
             spec_doctors = doctors.filter(
                 specialization__icontains='General')
 
-        if not spec_doctors.exists():
-            spec_doctors = doctors
-
+        # Apply budget filter
         if budget:
             budget_filtered = spec_doctors.filter(
                 consultation_fee__lte=int(budget))
@@ -304,7 +349,6 @@ class FullRecommendationView(APIView):
         })
 
 
-# ── Old predict view ──────────────────────────────────
 class PredictDiseaseView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -333,9 +377,7 @@ class PredictDiseaseView(APIView):
         })
 
 
-# ── Symptom list view ─────────────────────────────────
 class SymptomListView(APIView):
-    """Returns all 131 known symptoms for autocomplete."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

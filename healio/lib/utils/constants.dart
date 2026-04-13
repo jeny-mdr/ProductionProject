@@ -10,10 +10,11 @@ const String kDoctorsUrl  = '$kBaseUrl/api/users/doctors/';
 
 // AI
 const String kRecommendUrl = '$kBaseUrl/api/ai/recommend/';
-
+const String kSuggestUrl = '$kBaseUrl/api/ai/suggest/';
 // Chat REST
 const String kChatRoomsUrl = '$kBaseUrl/api/chat/rooms/';
 String kMarkReadUrl(int roomId) => '$kBaseUrl/api/chat/rooms/$roomId/read/';
+const String kChatUploadUrl = '$kBaseUrl/api/chat/upload/';
 
 // Chat WebSocket
 String kChatWsUrl(String otherUserId, String token) =>
@@ -23,3 +24,10 @@ String kChatWsUrl(String otherUserId, String token) =>
 const String kSavePrescriptionUrl = '$kBaseUrl/api/blockchain/prescriptions/save/';
 const String kMyPrescriptionsUrl   = '$kBaseUrl/api/blockchain/prescriptions/mine/';
 
+// Appointments
+const String kBookAppointmentUrl = '$kBaseUrl/api/appointments/book/';
+const String kMyAppointmentsUrl  = '$kBaseUrl/api/appointments/mine/';
+String kUpdateAppointmentUrl(int id) => '$kBaseUrl/api/appointments/$id/update/';
+
+const String kHospitalsUrl  = '$kBaseUrl/api/hospitals/nearby/';
+const String kPharmaciesUrl = '$kBaseUrl/api/hospitals/pharmacies/';

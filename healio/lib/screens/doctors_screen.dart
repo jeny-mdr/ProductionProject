@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import 'doctor_profile_screen.dart';
 
 class DoctorsScreen extends StatefulWidget {
   const DoctorsScreen({super.key});
@@ -150,119 +151,112 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
-    final myId = auth.user?['id']?.toString() ?? '0';
-    final rawId = doctor['id'] ??
-        doctor['user_id'] ??
-        doctor['user'] ?? '0';
-    final doctorId = rawId.toString();
-    debugPrint('DOCTOR FULL DATA: $doctor');
-    debugPrint('DOCTOR DATA: $doctor');
-    debugPrint('DOCTOR ID: $doctorId');
-
-    final name = doctor['name'] ??
-        doctor['username'] ?? 'Unknown';
+    final name = doctor['username'] ?? 'Unknown';
     final spec = doctor['specialization'] ?? '';
-    final fee = doctor['consultation_fee'];
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HealioColors.bgCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: HealioColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: HealioColors.primary.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+    final fee  = doctor['consultation_fee'];
+    final exp  = doctor['experience_years'];
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DoctorProfileScreen(
+              doctor: doctor),
+        ),
       ),
-      child: Row(children: [
-        // Avatar
-        CircleAvatar(
-          radius: 28,
-          backgroundColor: HealioColors.primaryLight,
-          child: Text(
-            name[0].toUpperCase(),
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: HealioColors.primary,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: HealioColors.bgCard,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+              color: HealioColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: HealioColors.primary
+                  .withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(children: [
+          // Avatar
+          CircleAvatar(
+            radius: 28,
+            backgroundColor:
+            HealioColors.primaryLight,
+            child: Text(
+              name[0].toUpperCase(),
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: HealioColors.primary,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 14),
+          const SizedBox(width: 14),
 
-        // Info
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Dr. $name',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: HealioColors.textDark,
-                  )),
-              if (spec.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(spec,
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text('Dr. $name',
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: HealioColors.textMid,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: HealioColors.textDark,
                     )),
+                if (spec.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(spec,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: HealioColors.textMid,
+                      )),
+                ],
+                if (fee != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Rs. $fee / session',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: HealioColors.primary,
+                      )),
+                ],
+                if (exp != null) ...[
+                  const SizedBox(height: 2),
+                  Text('$exp years experience',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: HealioColors.textLight,
+                      )),
+                ],
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Icon(Icons.circle,
+                      size: 8,
+                      color: HealioColors.online),
+                  const SizedBox(width: 4),
+                  Text('Verified',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: HealioColors.textLight,
+                      )),
+                ]),
               ],
-              if (fee != null) ...[
-                const SizedBox(height: 4),
-                Text('\$$fee / session',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: HealioColors.primary,
-                    )),
-              ],
-              const SizedBox(height: 6),
-              Row(children: [
-                const Icon(Icons.circle,
-                    size: 8,
-                    color: HealioColors.online),
-                const SizedBox(width: 4),
-                Text('Verified',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: HealioColors.textLight,
-                    )),
-              ]),
-            ],
+            ),
           ),
-        ),
 
-        // Chat button
-        ElevatedButton(
-          onPressed: () => Navigator.pushNamed(
-            context, '/chat',
-            arguments: {
-              'otherUserId':   doctorId,
-              'otherUsername': doctor['username'] ??
-                  doctorId,
-              'otherName':     name,
-            },
-          ),
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(70, 36),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ),
-          child: Text('Chat',
-              style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
-        ),
-      ]),
+          const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: HealioColors.textLight),
+        ]),
+      ),
     );
   }
 }

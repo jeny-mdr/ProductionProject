@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
@@ -78,13 +79,17 @@ class _AiScreenState extends State<AiScreen> {
   }
 
   void _addSymptom(String s) {
-    final clean = s.trim().toLowerCase().replaceAll(' ', '_');
-    if (clean.isNotEmpty && !_selected.contains(clean)) {
+    final clean = s.trim().toLowerCase()
+        .replaceAll(' ', '_');
+    if (clean.isNotEmpty &&
+        !_selected.contains(clean)) {
       setState(() {
         _selected.add(clean);
         _searchCtrl.clear();
-        _showList = false;
+        _showList    = false;
+        _suggestions = [];
       });
+      _getSuggestions();
     }
   }
 
@@ -118,6 +123,32 @@ class _AiScreenState extends State<AiScreen> {
         _gettingLocation = false;
       });
     }
+  }
+
+  List<String> _suggestions = [];
+
+  Future<void> _getSuggestions() async {
+    if (_selected.isEmpty) return;
+    final token = context.read<AuthProvider>().token;
+    try {
+      final res = await http.post(
+        Uri.parse(kSuggestUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'symptoms': _selected}),
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _suggestions = List<String>.from(
+              data['suggestions'])
+              .where((s) => !_selected.contains(s))
+              .toList();
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _analyse() async {
@@ -300,7 +331,8 @@ class _AiScreenState extends State<AiScreen> {
                 const SizedBox(height: 14),
                 Text('Selected (${_selected.length}):',
                     style: GoogleFonts.poppins(
-                        fontSize: 12, fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                         color: HealioColors.textMid)),
                 const SizedBox(height: 8),
                 Wrap(
@@ -308,16 +340,73 @@ class _AiScreenState extends State<AiScreen> {
                   children: _selected.map((s) => Chip(
                     label: Text(s.replaceAll('_', ' '),
                         style: GoogleFonts.poppins(
-                            fontSize: 12, fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                             color: HealioColors.primary)),
                     backgroundColor: HealioColors.primaryLight,
                     deleteIconColor: HealioColors.primary,
-                    onDeleted: () => setState(() => _selected.remove(s)),
+                    onDeleted: () => setState(
+                            () => _selected.remove(s)),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(color: HealioColors.primaryMid)),
+                        side: const BorderSide(
+                            color: HealioColors.primaryMid)),
                   )).toList(),
                 ),
+
+                // Suggestions INSIDE selected block
+                if (_suggestions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    const Icon(Icons.lightbulb_rounded,
+                        color: HealioColors.accent, size: 16),
+                    const SizedBox(width: 6),
+                    Text('Did you also experience?',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: HealioColors.accent,
+                        )),
+                  ]),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8, runSpacing: 6,
+                    children: _suggestions.map((s) =>
+                        GestureDetector(
+                          onTap: () => _addSymptom(s),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: HealioColors.accentLight,
+                              borderRadius:
+                              BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: HealioColors.accent
+                                      .withOpacity(0.4)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.add_rounded,
+                                    size: 14,
+                                    color: HealioColors.accent),
+                                const SizedBox(width: 4),
+                                Text(
+                                  s.replaceAll('_', ' '),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: HealioColors.accent,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ).toList(),
+                  ),
+                ],
               ],
               const SizedBox(height: 20),
 
@@ -509,7 +598,7 @@ class _Results extends StatelessWidget {
             icon: Icons.person_rounded,
             color: HealioColors.primary, iconBg: HealioColors.primaryLight,
             trailing: d['consultation_fee'] != null
-                ? '\$${d['consultation_fee']}' : null,
+                ? 'Rs.${d['consultation_fee']}' : null,
           ),
         ),
 
@@ -616,7 +705,13 @@ class _InfoTile extends StatelessWidget {
         if (mapLink != null) ...[
           const SizedBox(height: 6),
           GestureDetector(
-            onTap: () {},
+            onTap: () async {
+              final uri = Uri.parse(mapLink!);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri,
+                    mode: LaunchMode.externalApplication);
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(

@@ -119,15 +119,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_message_history(self):
-        messages = Message.objects.filter(room=self.room).order_by('-timestamp')[:50]
-        return [
-            {
+        messages = Message.objects.filter(
+            room=self.room).order_by('-timestamp')[:50]
+        result = []
+        for m in reversed(list(messages)):
+            msg_data = {
                 "message_id": m.id,
                 "sender": m.sender.username,
                 "sender_id": m.sender.id,
                 "message": m.content,
                 "timestamp": m.timestamp.isoformat(),
                 "is_read": m.is_read,
+                "message_type": m.message_type,
+                "file_name": m.file_name or '',
+                "file_url": f"http://192.168.101.12:8000{m.file.url}" if m.file else None,
             }
-            for m in reversed(list(messages))
-        ]
+            result.append(msg_data)
+        return result
