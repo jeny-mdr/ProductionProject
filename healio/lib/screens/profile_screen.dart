@@ -55,6 +55,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _editMode = true);
   }
 
+  Future<void> _verifyBlockchain() async {
+    final auth  = context.read<AuthProvider>();
+    final token = auth.token ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          CircularProgressIndicator(
+              color: HealioColors.primary),
+          SizedBox(width: 16),
+          Text('Verifying blockchain...'),
+        ]),
+      ),
+    );
+
+    try {
+      final res = await http.get(
+        Uri.parse('$kBaseUrl/api/blockchain/verify/'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (mounted) Navigator.pop(context);
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final valid  = data['valid'] as bool;
+        final total  = data['total_blocks'] ?? 0;
+
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  valid
+                      ? Icons.verified_rounded
+                      : Icons.warning_rounded,
+                  color: valid
+                      ? HealioColors.success
+                      : HealioColors.error,
+                  size: 56,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  valid
+                      ? 'Blockchain Verified!'
+                      : 'Tampering Detected!',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: valid
+                        ? HealioColors.success
+                        : HealioColors.error,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  valid
+                      ? '$total records verified.\nYour medical data is safe and tamper-proof.'
+                      : data['message'] ?? 'Records may have been tampered with.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: HealioColors.textMid,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK',
+                    style: GoogleFonts.poppins(
+                      color: HealioColors.primary,
+                      fontWeight: FontWeight.w600,
+                    )),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   Future<void> _pickImage(bool isQr) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -654,6 +745,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
+                        ],
+
+                        // Verify blockchain button
+                        if (!_editMode) ...[
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: _verifyBlockchain,
+                              icon: const Icon(
+                                  Icons.verified_rounded,
+                                  size: 18),
+                              label: Text(
+                                'Verify Blockchain Records',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                HealioColors.primaryDark,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                  BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                       // ── Prescriptions (patient) ─
+                        if (!_editMode &&
+                            role == 'patient') ...[
+                          const SizedBox(height: 24),
+                          _PrescriptionsSection(token: token),
                         ],
 
                         // ── Prescriptions (patient) ─
