@@ -74,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final res = await http.get(
-        Uri.parse('$kBaseUrl/api/blockchain/verify/'),
+        Uri.parse('$kBaseUrl/api/blockchain/verify/mine/'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -118,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 Text(
                   valid
-                      ? '$total records verified.\nYour medical data is safe and tamper-proof.'
+                      ? 'Your records are verified\nand tamper-proof.'
                       : data['message'] ?? 'Records may have been tampered with.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(

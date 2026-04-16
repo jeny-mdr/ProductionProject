@@ -204,7 +204,7 @@ class _DoctorCard extends StatelessWidget {
               crossAxisAlignment:
               CrossAxisAlignment.start,
               children: [
-                Text('Dr. $name',
+                Text('Dr. ${name[0].toUpperCase()}${name.substring(1)}',
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

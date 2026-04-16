@@ -17,6 +17,7 @@ import 'screens/doctor_profile_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/specialists_screen.dart';
 import 'screens/hospitals_screen.dart';
+import 'screens/search_screen.dart';
 
 
 void main() {
@@ -55,6 +56,7 @@ class HealioApp extends StatelessWidget {
           '/appointments': (_) => const AppointmentsScreen(),
           '/specialists': (_) => const SpecialistsScreen(),
           '/hospitals': (_) => const HospitalsScreen(),
+          '/search': (_) => const SearchScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/chat') {
