@@ -24,6 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUnread();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchUnread();
+  }
+
   Future<void> _fetchUnread() async {
     final token =
         context.read<AuthProvider>().token;

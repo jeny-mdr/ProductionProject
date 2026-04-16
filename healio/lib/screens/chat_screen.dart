@@ -40,12 +40,13 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     final auth = context.read<AuthProvider>();
     WidgetsBinding.instance
-        .addPostFrameCallback((_) {
-      context.read<ChatProvider>().connect(
+        .addPostFrameCallback((_) async {
+      await context.read<ChatProvider>().connect(
         widget.otherUserId,
         auth.token ?? '',
         auth.user?['username'] ?? '',
       );
+      await _markAsRead();
     });
   }
 
@@ -77,6 +78,30 @@ class _ChatScreenState extends State<ChatScreen> {
     context.read<ChatProvider>().sendMessage(text);
     _msgCtrl.clear();
     _scrollBottom();
+  }
+
+  Future<void> _markAsRead() async {
+    final token = context.read<AuthProvider>().token;
+    try {
+      final res = await http.get(
+        Uri.parse(kChatRoomsUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200) {
+        final rooms = List<dynamic>.from(jsonDecode(res.body));
+        final room = rooms.firstWhere(
+              (r) => r['other_user_id'].toString() == widget.otherUserId,
+          orElse: () => null,
+        );
+        if (room != null) {
+          final roomId = room['room_id'] as int;
+          await http.post(
+            Uri.parse(kMarkReadUrl(roomId)),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _pickAndSendFile() async {
