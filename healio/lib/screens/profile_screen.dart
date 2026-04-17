@@ -782,14 +782,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 24),
                           _PrescriptionsSection(token: token),
                         ],
-
-                        // ── Prescriptions (patient) ─
-                        if (!_editMode &&
-                            role == 'patient') ...[
-                          const SizedBox(height: 24),
-                          _PrescriptionsSection(
-                              token: token),
-                        ],
                       ],
                     ),
                   ),

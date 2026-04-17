@@ -41,6 +41,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "type": "history",
             "messages": history
         }))
+        # Mark all messages from other user as read
+        await self.mark_messages_read()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
@@ -116,6 +118,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=self.user,
             content=content,
         )
+
+    @database_sync_to_async
+    def mark_messages_read(self):
+        Message.objects.filter(
+            room=self.room,
+            is_read=False,
+        ).exclude(
+            sender=self.user
+        ).update(is_read=True)
 
     @database_sync_to_async
     def get_message_history(self):

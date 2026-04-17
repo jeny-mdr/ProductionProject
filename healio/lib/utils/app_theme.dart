@@ -26,6 +26,9 @@ ThemeData healioTheme() => ThemeData(
   colorScheme: ColorScheme.fromSeed(
     seedColor: HealioColors.primary,
     brightness: Brightness.light,
+    error: HealioColors.error,
+    background: HealioColors.bg,
+    surface: HealioColors.bgCard,
   ),
   textTheme: GoogleFonts.poppinsTextTheme(),
   appBarTheme: AppBarTheme(

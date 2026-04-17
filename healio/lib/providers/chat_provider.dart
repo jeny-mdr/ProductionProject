@@ -41,6 +41,9 @@ class ChatProvider extends ChangeNotifier {
       String token,
       String myUsername,
       ) async {
+    // Prevent double connection
+    if (_isConnecting) return;
+
     // Force close any existing connection
     try {
       await _channel?.sink.close();

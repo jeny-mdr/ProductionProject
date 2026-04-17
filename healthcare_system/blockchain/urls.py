@@ -4,6 +4,7 @@ from .views import (
     MyPrescriptionsView,
     VerifyChainView,
     DoctorVerificationHashView,
+    VerifyMyRecordsView,
 )
 
 urlpatterns = [
@@ -13,6 +14,8 @@ urlpatterns = [
          MyPrescriptionsView.as_view()),
     path('verify/',
          VerifyChainView.as_view()),
+    path('verify/mine/',
+         VerifyMyRecordsView.as_view()),
     path('verify-doctor/',
          DoctorVerificationHashView.as_view()),
 ]

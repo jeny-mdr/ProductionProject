@@ -18,15 +18,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _unreadCount = 0;
 
+  bool _hasFetchedOnce = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchUnread();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     _fetchUnread();
   }
 
@@ -386,27 +382,31 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedLabelStyle:
         GoogleFonts.poppins(fontSize: 11),
         currentIndex: 0,
-        onTap: (i) {
-          if (role == 'doctor') {
+        onTap: (i) async {
+          if (i == 0) {
+            _fetchUnread();
+          } else if (role == 'doctor') {
             if (i == 1)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/appointments');
             if (i == 2)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/chats');
             if (i == 3)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/profile');
+            _fetchUnread();
           } else {
             if (i == 1)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/specialists');
             if (i == 2)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/chats');
             if (i == 3)
-              Navigator.pushNamed(
+              await Navigator.pushNamed(
                   context, '/profile');
+            _fetchUnread();
           }
         },
         items: role == 'doctor'

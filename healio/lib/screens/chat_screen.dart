@@ -41,12 +41,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final auth = context.read<AuthProvider>();
     WidgetsBinding.instance
         .addPostFrameCallback((_) async {
-      await context.read<ChatProvider>().connect(
+      context.read<ChatProvider>().connect(
         widget.otherUserId,
         auth.token ?? '',
         auth.user?['username'] ?? '',
       );
-      await _markAsRead();
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) await _markAsRead();
     });
   }
 
@@ -472,7 +473,12 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(children: [
         // Messages
         Expanded(
-          child: chat.messages.isEmpty
+          child: chat.isConnecting
+              ? const Center(
+            child: CircularProgressIndicator(
+                color: HealioColors.primary),
+          )
+              : chat.messages.isEmpty
               ? Center(
             child: Column(
               mainAxisAlignment:

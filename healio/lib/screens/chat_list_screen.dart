@@ -215,14 +215,22 @@ class _RoomTile extends StatelessWidget {
     }
 
     return InkWell(
-      onTap: () => Navigator.pushNamed(
-        context, '/chat',
-        arguments: {
-          'otherUserId':   otherId,
-          'otherUsername': otherUser,
-          'otherName':     otherName,
-        },
-      ),
+      onTap: () async {
+        await Navigator.pushNamed(
+          context, '/chat',
+          arguments: {
+            'otherUserId':   otherId,
+            'otherUsername': otherUser,
+            'otherName':     otherName,
+          },
+        );
+        // Refresh the list when returning from chat
+        if (context.mounted) {
+          final state = context.findAncestorStateOfType<_ChatListScreenState>();
+          state?._fetch();
+        }
+      },
+
       child: Container(
         padding: const EdgeInsets.symmetric(
             horizontal: 16, vertical: 14),

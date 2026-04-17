@@ -115,6 +115,50 @@ class VerifyChainView(APIView):
         })
 
 
+class VerifyMyRecordsView(APIView):
+    """Verify only the current user's records."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if user.role == 'patient':
+            records = BlockchainRecord.objects.filter(
+                patient=user,
+                record_type='prescription'
+            )
+        elif user.role == 'doctor':
+            records = BlockchainRecord.objects.filter(
+                doctor=user
+            )
+        else:
+            records = BlockchainRecord.objects.none()
+
+        prev_hash = '0' * 64
+
+        # Need to verify in context of full chain
+        all_records = BlockchainRecord.objects.all()
+        for record in all_records:
+            expected = BlockchainRecord.compute_hash(
+                record.data_hash,
+                prev_hash,
+                record.created_at.isoformat()
+                if record.created_at else ''
+            )
+            if expected != record.block_hash:
+                return Response({
+                    "valid": False,
+                    "message": f"Chain broken at record ID {record.id}!",
+                })
+            prev_hash = record.block_hash
+
+        return Response({
+            "valid": True,
+            "total_blocks": records.count(),
+            "record_type": "prescriptions" if user.role == 'patient' else "verifications",
+            "message": "Your records are intact and tamper-proof.",
+        })
+
 class DoctorVerificationHashView(APIView):
     """Auto-called when admin verifies a doctor — stores hash."""
     permission_classes = [IsAuthenticated]
