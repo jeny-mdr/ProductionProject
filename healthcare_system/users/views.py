@@ -24,7 +24,7 @@ class RegisterView(APIView):
             return Response(
                 {"message": (
                     f"Account created for {user.username}. "
-                    f"{'Await admin verification.'if user.role == 'doctor' else 'You can log in now.'}"
+                    f"{'Await admin verification.' if user.role == 'doctor' else 'You can log in now.'}"
                 )},
                 status=status.HTTP_201_CREATED
             )

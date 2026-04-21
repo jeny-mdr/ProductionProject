@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'doctor_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class DoctorsScreen extends StatefulWidget {
   const DoctorsScreen({super.key});
@@ -156,6 +157,9 @@ class _DoctorCard extends StatelessWidget {
     final fee  = doctor['consultation_fee'];
     final exp  = doctor['experience_years'];
 
+    // TEMP DEBUG - remove after testing
+    debugPrint('Doctor: $name, pic: ${doctor['profile_picture']}');
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -185,9 +189,26 @@ class _DoctorCard extends StatelessWidget {
           // Avatar
           CircleAvatar(
             radius: 28,
-            backgroundColor:
-            HealioColors.primaryLight,
-            child: Text(
+            backgroundColor: HealioColors.primaryLight,
+            child: doctor['profile_picture'] != null &&
+                doctor['profile_picture'].toString().isNotEmpty
+                ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: doctor['profile_picture'].toString(),
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => Text(
+                  name[0].toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: HealioColors.primary,
+                  ),
+                ),
+              ),
+            )
+                : Text(
               name[0].toUpperCase(),
               style: GoogleFonts.poppins(
                 fontSize: 20,

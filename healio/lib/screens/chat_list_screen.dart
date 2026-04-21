@@ -224,11 +224,6 @@ class _RoomTile extends StatelessWidget {
             'otherName':     otherName,
           },
         );
-        // Refresh the list when returning from chat
-        if (context.mounted) {
-          final state = context.findAncestorStateOfType<_ChatListScreenState>();
-          state?._fetch();
-        }
       },
 
       child: Container(

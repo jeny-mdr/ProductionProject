@@ -263,8 +263,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final role  = user['role'] ?? 'patient';
     final token = auth.token ?? '';
 
-    final profilePicUrl =
-    user['profile_picture'] as String?;
+    final rawPicUrl = user['profile_picture'] as String?;
+    final profilePicUrl = (rawPicUrl != null && rawPicUrl.isNotEmpty)
+        ? (rawPicUrl.startsWith('http') ? rawPicUrl : '$kBaseUrl$rawPicUrl')
+        : null;
+    debugPrint('Profile pic: $profilePicUrl');
     final paymentQrUrl =
     user['payment_qr'] as String?;
 
