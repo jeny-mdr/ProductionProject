@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -222,6 +223,7 @@ class _RoomTile extends StatelessWidget {
             'otherUserId':   otherId,
             'otherUsername': otherUser,
             'otherName':     otherName,
+            'otherPicUrl':   room['other_pic_url']?.toString(),
           },
         );
       },
@@ -241,9 +243,26 @@ class _RoomTile extends StatelessWidget {
           Stack(children: [
             CircleAvatar(
               radius: 26,
-              backgroundColor:
-              HealioColors.primaryLight,
-              child: Text(
+              backgroundColor: HealioColors.primaryLight,
+              child: room['other_pic_url'] != null &&
+                  room['other_pic_url'].toString().isNotEmpty
+                  ? ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: room['other_pic_url'].toString(),
+                  width: 52,
+                  height: 52,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => Text(
+                    otherName[0].toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: HealioColors.primary,
+                    ),
+                  ),
+                ),
+              )
+                  : Text(
                 otherName[0].toUpperCase(),
                 style: GoogleFonts.poppins(
                   fontSize: 18,

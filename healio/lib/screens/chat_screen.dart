@@ -18,12 +18,14 @@ class ChatScreen extends StatefulWidget {
   final String otherUserId;
   final String otherUsername;
   final String otherName;
+  final String? otherPicUrl;
 
   const ChatScreen({
     super.key,
     required this.otherUserId,
     required this.otherUsername,
     required this.otherName,
+    this.otherPicUrl,
   });
 
   @override
@@ -34,6 +36,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _msgCtrl    = TextEditingController();
   final _scrollCtrl = ScrollController();
+  ChatProvider? _chatProvider;
 
   @override
   void initState() {
@@ -52,10 +55,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _chatProvider ??= context.read<ChatProvider>();
+  }
+
+  @override
   void dispose() {
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
-    context.read<ChatProvider>().disconnect();
+    _chatProvider?.disconnect();
     super.dispose();
   }
 
@@ -396,9 +405,28 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor:
-            Colors.white.withOpacity(0.25),
-            child: Text(
+            backgroundColor: Colors.white.withOpacity(0.25),
+            child: widget.otherPicUrl != null &&
+                widget.otherPicUrl!.isNotEmpty
+                ? ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: widget.otherPicUrl!.startsWith('http')
+                    ? widget.otherPicUrl!
+                    : '$kBaseUrl${widget.otherPicUrl}',
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => Text(
+                  widget.otherName[0].toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+                : Text(
               widget.otherName[0].toUpperCase(),
               style: GoogleFonts.poppins(
                 fontSize: 14,

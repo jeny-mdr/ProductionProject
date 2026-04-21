@@ -22,19 +22,33 @@ class MyRoomsView(APIView):
 
         result = []
         for room in rooms:
-            other   = room.doctor if user.role == 'patient' else room.patient
-            last_msg = room.messages.order_by(
-                '-timestamp').first()
-            unread  = room.messages.filter(
-                is_read=False).exclude(
-                sender=user).count()
+            other    = room.doctor if user.role == 'patient' else room.patient
+            last_msg = room.messages.order_by('-timestamp').first()
+            unread   = room.messages.filter(
+                is_read=False).exclude(sender=user).count()
+
+            # Get other user's profile picture
+            other_pic = None
+            try:
+                if other.role == 'doctor' and hasattr(other, 'doctor'):
+                    if other.doctor.profile_picture:
+                        other_pic = request.build_absolute_uri(
+                            other.doctor.profile_picture.url)
+                elif other.role == 'patient' and hasattr(other, 'patient'):
+                    if other.patient.profile_picture:
+                        other_pic = request.build_absolute_uri(
+                            other.patient.profile_picture.url)
+            except Exception:
+                other_pic = None
+
             result.append({
-                "room_id":          room.id,
-                "other_user_id":    other.id,
-                "other_username":   other.username,
-                "last_message":     last_msg.content if last_msg else None,
+                "room_id":           room.id,
+                "other_user_id":     other.id,
+                "other_username":    other.username,
+                "last_message":      last_msg.content if last_msg else None,
                 "last_message_time": last_msg.timestamp.isoformat() if last_msg else None,
-                "unread_count":     unread,
+                "unread_count":      unread,
+                "other_pic_url":     other_pic,
             })
         return Response(result)
 

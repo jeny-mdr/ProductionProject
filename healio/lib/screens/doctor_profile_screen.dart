@@ -591,6 +591,7 @@ class _DoctorProfileScreenState
                       'otherUserId':   doctorId,
                       'otherUsername': name,
                       'otherName':     name,
+                      'otherPicUrl':   picUrl,
                     },
                   ),
               icon: const Icon(

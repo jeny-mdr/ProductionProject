@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../utils/constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -108,20 +110,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () =>
-                            _showLogout(context),
+                        onTap: () => _showLogout(context),
                         child: CircleAvatar(
                           radius: 22,
-                          backgroundColor:
-                          Colors.white
-                              .withOpacity(0.25),
-                          child: Text(
+                          backgroundColor: Colors.white.withOpacity(0.25),
+                          child: user?['profile_picture'] != null &&
+                              user!['profile_picture'].toString().isNotEmpty
+                              ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: user['profile_picture'].toString().startsWith('http')
+                                  ? user['profile_picture'].toString()
+                                  : '$kBaseUrl${user['profile_picture']}',
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Text(
+                                name[0].toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          )
+                              : Text(
                             name[0].toUpperCase(),
-                            style:
-                            GoogleFonts.poppins(
+                            style: GoogleFonts.poppins(
                               fontSize: 18,
-                              fontWeight:
-                              FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
                           ),

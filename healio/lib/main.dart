@@ -66,6 +66,7 @@ class HealioApp extends StatelessWidget {
                 otherUserId:   args['otherUserId']   as String,
                 otherUsername: args['otherUsername'] as String,
                 otherName:     args['otherName']     as String,
+                otherPicUrl:   args['otherPicUrl']   as String?,
               ),
             );
           }
