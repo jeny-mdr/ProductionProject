@@ -442,8 +442,8 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               Text(
                 isDoc
-                    ? widget.otherName
-                    : 'Dr. ${widget.otherName}',
+                    ? '${widget.otherName[0].toUpperCase()}${widget.otherName.substring(1)}'
+                    : 'Dr. ${widget.otherName[0].toUpperCase()}${widget.otherName.substring(1)}',
                 style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

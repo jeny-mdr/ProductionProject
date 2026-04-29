@@ -1,6 +1,10 @@
-// Android Emulator
-const String kBaseUrl   = 'http://192.168.101.12:8000';
-const String kWsBaseUrl = 'ws://192.168.101.12:8000';
+// Android Emulator (home ip)
+//const String kBaseUrl   = 'http://192.168.101.12:8000';
+//const String kWsBaseUrl = 'ws://192.168.101.12:8000';
+
+// Android Emulator (college ip)
+const String kBaseUrl   = 'http://172.22.18.73:8000';
+const String kWsBaseUrl = 'ws://172.22.18.73:8000';
 
 // Auth
 const String kRegisterUrl = '$kBaseUrl/api/users/register/';

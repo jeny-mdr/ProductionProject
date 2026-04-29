@@ -550,6 +550,37 @@ class _Results extends StatelessWidget {
                           fontSize: 12, color: HealioColors.textLight)),
                 ]),
               ],
+
+// Top 3 predictions
+              if ((result['top_predictions'] as List?)?.isNotEmpty == true) ...[
+                const SizedBox(height: 12),
+                Text('Other Possibilities:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: HealioColors.textMid,
+                    )),
+                const SizedBox(height: 6),
+                ...(result['top_predictions'] as List)
+                    .where((p) => p['disease'] != result['predicted_disease'])
+                    .take(2)
+                    .map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    const Icon(Icons.arrow_right_rounded,
+                        size: 16, color: HealioColors.textLight),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${p['disease']} (${p['confidence']}%)',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: HealioColors.textMid,
+                      ),
+                    ),
+                  ]),
+                ))
+                    .toList(),
+              ],
               if (result['description'] != null) ...[
                 const SizedBox(height: 8),
                 Text(result['description'].toString(),
@@ -593,7 +624,7 @@ class _Results extends StatelessWidget {
           color: HealioColors.primary,
           items: result['recommended_doctors'] as List? ?? [],
           builder: (d) => _InfoTile(
-            title: 'Dr. ${d['name'] ?? d['username'] ?? 'Unknown'}',
+            title: 'Dr. ${((d['name'] ?? d['username'] ?? 'Unknown') as String).split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ')}',
             subtitle: d['specialization'] ?? '',
             icon: Icons.person_rounded,
             color: HealioColors.primary, iconBg: HealioColors.primaryLight,

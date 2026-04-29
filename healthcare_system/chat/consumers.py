@@ -143,7 +143,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "is_read": m.is_read,
                 "message_type": m.message_type,
                 "file_name": m.file_name or '',
-                "file_url": f"http://192.168.101.12:8000{m.file.url}" if m.file else None,
+                "file_url": f"http://172.22.18.73:8000{m.file.url}" if m.file else None,
+                #"file_url": f"http://192.168.101.12:8000{m.file.url}" if m.file else None,
             }
             result.append(msg_data)
         return result
