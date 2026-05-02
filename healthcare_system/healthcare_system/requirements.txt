@@ -5,4 +5,4 @@ channels
 channels_redis
 django-cors-headers
 Pillow          # for ImageField on Doctor profile picture
-web3            # for blockchain app later
+web3

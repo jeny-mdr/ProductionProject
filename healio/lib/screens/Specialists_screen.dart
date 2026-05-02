@@ -7,6 +7,8 @@ import '../providers/auth_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import 'doctor_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../utils/constants.dart';
 
 // Specialization data with icons and colors
 const List<Map<String, dynamic>> kSpecialistData = [
@@ -36,9 +38,13 @@ class SpecialistsScreen extends StatelessWidget {
       backgroundColor: HealioColors.bg,
       appBar: AppBar(
         backgroundColor: HealioColors.primary,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         toolbarHeight: 80,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -56,6 +62,7 @@ class SpecialistsScreen extends StatelessWidget {
           ],
         ),
       ),
+
       body: GridView.builder(
         padding: const EdgeInsets.all(20),
         gridDelegate:
@@ -332,21 +339,33 @@ class _FilteredDoctorsScreenState
               child: Row(children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor:
-                  HealioColors
-                      .primaryLight,
-                  child: Text(
-                    name[0]
-                        .toUpperCase(),
-                    style: GoogleFonts
-                        .poppins(
+                  backgroundColor: HealioColors.primaryLight,
+                  child: doctor['profile_picture'] != null &&
+                      doctor['profile_picture'].toString().isNotEmpty
+                      ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: doctor['profile_picture'].toString().startsWith('http')
+                          ? doctor['profile_picture'].toString()
+                          : '$kBaseUrl${doctor['profile_picture']}',
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Text(
+                        name[0].toUpperCase(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: HealioColors.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                      : Text(
+                    name[0].toUpperCase(),
+                    style: GoogleFonts.poppins(
                       fontSize: 20,
-                      fontWeight:
-                      FontWeight
-                          .w700,
-                      color:
-                      HealioColors
-                          .primary,
+                      fontWeight: FontWeight.w700,
+                      color: HealioColors.primary,
                     ),
                   ),
                 ),

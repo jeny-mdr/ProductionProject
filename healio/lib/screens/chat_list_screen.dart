@@ -305,17 +305,26 @@ class _RoomTile extends StatelessWidget {
               children: [
                 Row(children: [
                   Expanded(
-                    child: Text(
-                      otherName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: unread > 0
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        color:
-                        HealioColors.textDark,
+                    child: Row(children: [
+                      Expanded(
+                        child: Text(
+                          otherName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: unread > 0
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: HealioColors.textDark,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (room['is_doctor'] == true)
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 14,
+                          color: HealioColors.primary,
+                        ),
+                    ]),
                   ),
                   if (timeLabel.isNotEmpty)
                     Text(

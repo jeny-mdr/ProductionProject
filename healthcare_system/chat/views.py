@@ -49,6 +49,7 @@ class MyRoomsView(APIView):
                 "last_message_time": last_msg.timestamp.isoformat() if last_msg else None,
                 "unread_count":      unread,
                 "other_pic_url":     other_pic,
+                "is_doctor": other.role == 'doctor',
             })
         return Response(result)
 
