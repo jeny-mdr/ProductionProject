@@ -125,3 +125,6 @@ CHANNEL_LAYERS = {
 
 # CORS (allows Flutter app to call the API)
 CORS_ALLOW_ALL_ORIGINS = True
+
+#BASE_URL = 'http://10.0.2.2:8000'
+BASE_URL = 'http://192.168.101.12:8000'

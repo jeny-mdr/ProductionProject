@@ -4,6 +4,7 @@ from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 from .models import Room, Message
+from django.conf import settings
 
 User = get_user_model()
 
@@ -82,7 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message_id": event["message_id"],
         }))
 
-    # ── DB helpers (run sync code safely in async context) ──────────────
+    # DB helpers
 
     @database_sync_to_async
     def get_user_from_token(self, token_str):
@@ -143,8 +144,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "is_read": m.is_read,
                 "message_type": m.message_type,
                 "file_name": m.file_name or '',
-                "file_url": f"http://172.22.18.73:8000{m.file.url}" if m.file else None,
-                #"file_url": f"http://192.168.101.12:8000{m.file.url}" if m.file else None,
+                "file_url": f"{settings.BASE_URL}{m.file.url}" if m.file else None,
+               # "file_url": f"http://172.22.18.73:8000{m.file.url}" if m.file else None,
+               #"file_url": f"http://192.168.101.12:8000{m.file.url}" if m.file else None,
+               # "file_url": f"http://10.0.2.2:8000{m.file.url}" if m.file else None,
             }
             result.append(msg_data)
         return result

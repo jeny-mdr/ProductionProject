@@ -148,7 +148,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final response = await request.send();
       if (response.statusCode == 201) {
-        // ── NEW: read response and add file message ──
+
         final responseBody =
         await response.stream.bytesToString();
         final data = jsonDecode(responseBody);
@@ -160,7 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
           sender:      auth.user?['username'] ?? '',
         );
 
-        // ── NEW: reconnect if WebSocket dropped ──
+
         final chat = context.read<ChatProvider>();
         if (!chat.isConnected) {
           await chat.connect(
@@ -220,45 +220,47 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: HealioColors.textDark,
                 )),
           ]),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
-            children: [
-              Text(
-                'For: ${widget.otherName}',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: HealioColors.textMid,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: prescCtrl,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  hintText:
-                  'e.g. Take Paracetamol 500mg twice daily…',
-                  hintStyle: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: HealioColors.textLight),
-                  filled: true,
-                  fillColor: HealioColors.bgInput,
-                  border: OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'For: ${widget.otherName}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: HealioColors.textMid,
                   ),
                 ),
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 8),
-                Text(error!,
-                    style: GoogleFonts.poppins(
+                const SizedBox(height: 12),
+                TextField(
+                  controller: prescCtrl,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText:
+                    'e.g. Take Paracetamol 500mg twice daily…',
+                    hintStyle: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: HealioColors.error)),
+                        color: HealioColors.textLight),
+                    filled: true,
+                    fillColor: HealioColors.bgInput,
+                    border: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(error!,
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: HealioColors.error)),
+                ],
               ],
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -642,7 +644,7 @@ class _ChatScreenState extends State<ChatScreen> {
           a.day == b.day;
 }
 
-// ── Bubble ──────────────────────────────────────────
+// Bubble
 class _Bubble extends StatelessWidget {
   final dynamic msg;
   const _Bubble({required this.msg});
@@ -779,7 +781,7 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-// ── File widget ─────────────────────────────────────
+// File widget
 class _FileWidget extends StatelessWidget {
   final String  text;
   final String? fileUrl;
@@ -885,7 +887,7 @@ class _FileWidget extends StatelessWidget {
   }
 }
 
-// ── Prescription content ────────────────────────────
+// Prescription content
 class _PrescriptionContent extends StatelessWidget {
   final String text;
   final bool   isMe;
@@ -951,7 +953,7 @@ class _PrescriptionContent extends StatelessWidget {
   }
 }
 
-// ── Date divider ────────────────────────────────────
+//  Date divider
 class _DateDivider extends StatelessWidget {
   final DateTime date;
   const _DateDivider(this.date);

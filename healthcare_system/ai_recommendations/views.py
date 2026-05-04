@@ -412,7 +412,7 @@ class FullRecommendationView(APIView):
         hospital_list, pharmacy_list = get_nearby(
             user_lat, user_lng)
 
-        # ── Low confidence threshold lowered to 20% ──
+        # Low confidence threshold lowered to 20%
         if max_confidence < 20:
             return Response({
                 "predicted_disease":   "Uncertain",
@@ -438,7 +438,7 @@ class FullRecommendationView(APIView):
                 )
             })
 
-        # ── High confidence ──────────────────────────
+        # High confidence
         description    = DESCRIPTIONS.get(
             disease_name, "No description available.")
         precautions    = PRECAUTIONS.get(disease_name, [])

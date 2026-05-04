@@ -331,7 +331,7 @@ class _DoctorProfileScreenState
       backgroundColor: HealioColors.bg,
       body: CustomScrollView(
         slivers: [
-          // ── App bar ──────────────────────────
+          // App bar
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
@@ -399,7 +399,7 @@ class _DoctorProfileScreenState
             ),
           ),
 
-          // ── Content ──────────────────────────
+          //  Content
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -646,7 +646,7 @@ class _DoctorProfileScreenState
   }
 }
 
-// ── Helper widgets ───────────────────────────────────
+// Helper widgets
 
 class _StatCard extends StatelessWidget {
   final IconData icon;

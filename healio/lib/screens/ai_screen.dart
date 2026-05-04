@@ -551,7 +551,7 @@ class _Results extends StatelessWidget {
                 ]),
               ],
 
-// Top 3 predictions
+              // Top 3 predictions
               if ((result['top_predictions'] as List?)?.isNotEmpty == true) ...[
                 const SizedBox(height: 12),
                 Text('Other Possibilities:',

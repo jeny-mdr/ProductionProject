@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (auth.user != null) {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
-        // Token expired or invalid — go to login
+        // Token expired or invalid, go to login
         await auth.logout();
         Navigator.pushReplacementNamed(context, '/login');
       }

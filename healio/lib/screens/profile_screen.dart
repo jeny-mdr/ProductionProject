@@ -275,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: HealioColors.bg,
       body: Column(
         children: [
-          // ── Header ──────────────────────────────
+          // Header
           Container(
             color: HealioColors.primary,
             child: SafeArea(
@@ -340,7 +340,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // ── Body ────────────────────────────────
+          // Body
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -460,7 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment:
                       CrossAxisAlignment.start,
                       children: [
-                        // ── View mode ──────────────
+                        // View mode
                         if (!_editMode) ...[
                           _InfoCard(
                             children: [
@@ -590,7 +590,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ],
 
-                        // ── Edit mode ──────────────
+                        // Edit mode
                         if (_editMode) ...[
                           Text('Edit Profile',
                               style: GoogleFonts.poppins(
@@ -779,7 +779,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
 
-                       // ── Prescriptions (patient) ─
+                       // Prescriptions (patient)
                         if (!_editMode &&
                             role == 'patient') ...[
                           const SizedBox(height: 24),
@@ -807,7 +807,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   );
 }
 
-// ── Reusable widgets ─────────────────────────────────
+// Reusable widgets
 
 class _InfoCard extends StatelessWidget {
   final List<Widget> children;
@@ -920,7 +920,7 @@ class _EditField extends StatelessWidget {
   );
 }
 
-// ── Prescriptions section ────────────────────────────
+// Prescriptions section
 class _PrescriptionsSection extends StatefulWidget {
   final String token;
   const _PrescriptionsSection({required this.token});
@@ -1102,7 +1102,7 @@ class _PrescriptionsSectionState
   }
 }
 
-// ── String extension ─────────────────────────────────
+// String extension
 extension StringExtension on String {
   String capitalizeFirst() =>
       isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';

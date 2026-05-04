@@ -247,7 +247,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    // ── Patient fields ──────────────
+                    // Patient fields
                     if (_role == 'patient') ...[
                       const SizedBox(height: 14),
                       _Label('Age (optional)'),
@@ -293,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
 
-                    // ── Doctor fields ───────────────
+                    // Doctor fields
                     if (_role == 'doctor') ...[
                       const SizedBox(height: 14),
                       _Label('Specialization'),
@@ -422,7 +422,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// ── Helpers ─────────────────────────────────────────
+// Helpers
 
 class _Label extends StatelessWidget {
   final String text;
